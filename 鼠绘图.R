@@ -8,8 +8,32 @@ library('org.Mm.eg.db')
 biocLite('clusterProfiler')
 diff<-read.csv(file="C:/Users/a/Desktop/数据分析/wsh/all_diff_fe.csv")
 
-gene.df <- bitr(diff[,1],fromType="ENSEMBL",toType="ENTREZID", OrgDb = org.Mm.eg.db）#TCGA数据框如果没有进行基因注释，那么fromType应该是Ensembl，各种ID之间可以互相转换,toType可以是一个字符串，也可以是一个向量，看自己需求                     
-gene <- gene.df$ENTREZID
+#gene.df <- bitr(diff[,1],fromType="ENSEMBL",toType="ENTREZID", OrgDb = org.Mm.eg.db）#TCGA数据框如果没有进行基因注释，那么fromType应该是Ensembl，各种ID之间可以互相转换,toType可以是一个字符串，也可以是一个向量，看自己需求                     
+#gene <- gene.df$ENTREZID
+
+
+library(biomaRt)
+listMarts()
+mart<-useMart("ensembl")
+dataset_list=as.data.frame(listDatasets(mart))
+dataset_list
+mart_oas=useMart("ensembl", "mmusculus_gene_ensembl")
+
+filter_list=as.data.frame(listFilters(mart_oas))
+tail(filter_list)
+attri_list=as.data.frame(listAttributes(mart_oas))
+attri_list
+
+list_gene=getBM(attributes = c("ensembl_gene_id","entrezgene_id","external_gene_name","description","chromosome_name"),
+                filters = "ensembl_gene_id",
+                values = diff,
+                mart = mart_oas)
+colnames(diff)[1] <- "ensembl_gene_id"
+dataf <- merge(diff,list_gene)
+
+write.csv(dataf,file = "all_diffsymbolname.csv", row.names = TRUE)
+
+
 #3、GO富集
 gene <- diff$X
 ##CC表示细胞组分，MF表示分子功能，BP表示生物学过程，ALL表示同时富集三种过程，选自己需要的,我一般是做BP,MF,CC这3组再合并成一个数据框，方便后续摘取部分通路绘图。
